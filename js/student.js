@@ -5,28 +5,66 @@ let selected = [];
 
 
 // ========================================
-// 🔢 번호 1~17 만들기
+// 🔢 관리자 설정 번호 불러오기
 // ========================================
 
-for (let i = 1; i <= 17; i++) {
+function getLottoNumbers() {
+
+    const saved =
+        localStorage.getItem("lottoNumbers");
+
+
+    // 관리자가 번호를 설정하지 않았다면
+    // 기본값 1~17 사용
+    if (!saved) {
+
+        return Array.from(
+            { length: 17 },
+            (_, i) => i + 1
+        );
+    }
+
+
+    return JSON.parse(saved);
+}
+
+
+const lottoNumbers =
+    getLottoNumbers();
+
+
+// ========================================
+// 🔢 번호판 만들기
+// ========================================
+
+lottoNumbers.forEach(number => {
 
     const ball =
         document.createElement("div");
 
-    ball.className = "ball";
 
-    ball.innerText = i;
+    ball.className =
+        "ball";
+
+
+    ball.innerText =
+        number;
 
 
     ball.onclick = () => {
 
-        if (ball.classList.contains("selected")) {
+        if (
+            ball.classList.contains("selected")
+        ) {
 
-            ball.classList.remove("selected");
+            ball.classList.remove(
+                "selected"
+            );
+
 
             selected =
                 selected.filter(
-                    n => n !== i
+                    n => n !== number
                 );
 
         } else {
@@ -41,9 +79,12 @@ for (let i = 1; i <= 17; i++) {
             }
 
 
-            ball.classList.add("selected");
+            ball.classList.add(
+                "selected"
+            );
 
-            selected.push(i);
+
+            selected.push(number);
         }
 
 
@@ -53,7 +94,7 @@ for (let i = 1; i <= 17; i++) {
 
 
     board.appendChild(ball);
-}
+});
 
 
 
@@ -83,10 +124,12 @@ function getWeekKey() {
     const year =
         monday.getFullYear();
 
+
     const month =
         String(
             monday.getMonth() + 1
         ).padStart(2, "0");
+
 
     const date =
         String(
@@ -140,6 +183,7 @@ function getTickets() {
 
 const submitBtn =
     document.getElementById("submitBtn");
+
 
 
 // ========================================
@@ -300,7 +344,6 @@ submitBtn.onclick = () => {
 
     checkSubmitStatus();
 
-    // 제출 후 결과 화면 갱신
     showMyResults();
 };
 
@@ -345,8 +388,10 @@ function showMyResults() {
         const text =
             document.createElement("p");
 
+
         text.innerText =
             "🎲 아직 추첨 결과가 없습니다.";
+
 
         resultBox.appendChild(text);
 
@@ -354,20 +399,20 @@ function showMyResults() {
     }
 
 
-let drawData =
-    JSON.parse(savedDraw);
+    let drawData =
+        JSON.parse(savedDraw);
 
 
-// 예전 버전 데이터 대응
-if (Array.isArray(drawData)) {
+    // 예전 버전 데이터 대응
+    if (Array.isArray(drawData)) {
 
-    drawData = {
+        drawData = {
 
-        date: "이전 추첨",
+            date: "이전 추첨",
 
-        numbers: drawData
-    };
-}
+            numbers: drawData
+        };
+    }
 
 
     const tickets =
@@ -380,8 +425,10 @@ if (Array.isArray(drawData)) {
         const text =
             document.createElement("p");
 
+
         text.innerText =
             "아직 제출한 로또가 없습니다.";
+
 
         resultBox.appendChild(text);
 
@@ -396,8 +443,10 @@ if (Array.isArray(drawData)) {
     const title =
         document.createElement("h2");
 
+
     title.innerText =
         `🏆 ${drawData.date} 결과`;
+
 
     resultBox.appendChild(title);
 
@@ -405,12 +454,15 @@ if (Array.isArray(drawData)) {
     const winningNumbers =
         document.createElement("p");
 
+
     winningNumbers.innerText =
         `당첨 번호: ${drawData.numbers.join(", ")}`;
+
 
     resultBox.appendChild(
         winningNumbers
     );
+
 
 
     // ========================================
@@ -421,6 +473,7 @@ if (Array.isArray(drawData)) {
 
         const ticketBox =
             document.createElement("div");
+
 
         ticketBox.className =
             "my-result-ticket";
@@ -437,9 +490,11 @@ if (Array.isArray(drawData)) {
         const ticketTitle =
             document.createElement("p");
 
+
         ticketTitle.innerText =
             `${index + 1}장: ` +
             ticket.numbers.join(", ");
+
 
         ticketBox.appendChild(
             ticketTitle
@@ -468,7 +523,6 @@ if (Array.isArray(drawData)) {
 
             result.innerText =
                 `${matchCount}개 일치`;
-
         }
 
 
