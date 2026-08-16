@@ -1,22 +1,27 @@
 const board = document.getElementById("lottoBoard");
 const count = document.getElementById("count");
+const submitBtn = document.getElementById("submitBtn");
+
+const db = supabaseClient;
 
 let selected = [];
 
 
 // ========================================
-// 🔢 관리자 설정 번호 불러오기
+// 🔢 번호 불러오기
 // ========================================
 
-function getLottoNumbers() {
+async function getLottoNumbers() {
 
-    const saved =
-        localStorage.getItem("lottoNumbers");
+    const { data, error } = await db
+        .from("settings")
+        .select("numbers")
+        .order("id", { ascending: true })
+        .limit(1)
+        .maybeSingle();
 
-
-    // 관리자가 번호를 설정하지 않았다면
-    // 기본값 1~17 사용
-    if (!saved) {
+    if (error) {
+        console.error("번호 불러오기 오류:", error);
 
         return Array.from(
             { length: 17 },
@@ -24,429 +29,302 @@ function getLottoNumbers() {
         );
     }
 
+    if (
+        data &&
+        Array.isArray(data.numbers) &&
+        data.numbers.length > 0
+    ) {
+        return data.numbers;
+    }
 
-    return JSON.parse(saved);
+    return Array.from(
+        { length: 17 },
+        (_, i) => i + 1
+    );
 }
 
 
-const lottoNumbers =
-    getLottoNumbers();
-
-
 // ========================================
-// 🔢 번호판 만들기
+// 🔢 번호판
 // ========================================
 
-lottoNumbers.forEach(number => {
+async function createLottoBoard() {
 
-    const ball =
-        document.createElement("div");
+    const lottoNumbers = await getLottoNumbers();
 
+    board.innerHTML = "";
 
-    ball.className =
-        "ball";
+    lottoNumbers.forEach(number => {
 
+        const ball = document.createElement("div");
 
-    ball.innerText =
-        number;
+        ball.className = "ball";
+        ball.innerText = number;
 
+        ball.onclick = () => {
 
-    ball.onclick = () => {
+            if (ball.classList.contains("selected")) {
 
-        if (
-            ball.classList.contains("selected")
-        ) {
+                ball.classList.remove("selected");
 
-            ball.classList.remove(
-                "selected"
-            );
-
-
-            selected =
-                selected.filter(
+                selected = selected.filter(
                     n => n !== number
                 );
 
-        } else {
+            } else {
 
-            if (selected.length >= 6) {
+                if (selected.length >= 6) {
 
-                alert(
-                    "6개까지만 선택할 수 있습니다."
-                );
+                    alert("6개까지만 선택할 수 있습니다.");
+                    return;
+                }
 
-                return;
+                ball.classList.add("selected");
+                selected.push(number);
             }
 
+            count.innerText =
+                `선택 : ${selected.length} / 6`;
+        };
 
-            ball.classList.add(
-                "selected"
-            );
-
-
-            selected.push(number);
-        }
-
-
-        count.innerText =
-            `선택 : ${selected.length} / 6`;
-    };
-
-
-    board.appendChild(ball);
-});
-
-
-
-// ========================================
-// 📅 이번 주 시작 날짜
-// ========================================
-
-function getWeekKey() {
-
-    const today = new Date();
-
-    const day = today.getDay();
-
-    const diff =
-        day === 0 ? -6 : 1 - day;
-
-
-    const monday =
-        new Date(today);
-
-
-    monday.setDate(
-        today.getDate() + diff
-    );
-
-
-    const year =
-        monday.getFullYear();
-
-
-    const month =
-        String(
-            monday.getMonth() + 1
-        ).padStart(2, "0");
-
-
-    const date =
-        String(
-            monday.getDate()
-        ).padStart(2, "0");
-
-
-    return `${year}-${month}-${date}`;
+        board.appendChild(ball);
+    });
 }
 
 
+// ========================================
+// 👩‍🎓 학번
+// ========================================
+
+function getStudentId() {
+
+    return localStorage.getItem("studentId");
+}
+
 
 // ========================================
-// 🎟️ 현재 학생의 이번 주 로또 가져오기
+// 🎟️ 내 로또
 // ========================================
 
-function getTickets() {
+async function getTickets() {
 
-    const studentId =
-        localStorage.getItem("studentId");
-
+    const studentId = getStudentId();
 
     if (!studentId) {
         return [];
     }
 
+    const { data, error } = await db
+        .from("tickets")
+        .select("*")
+        .eq("student_id", studentId)
+        .order("id", { ascending: true });
 
-    const weekKey =
-        getWeekKey();
+    if (error) {
 
-
-    const saved =
-        localStorage.getItem(
-            `tickets_${weekKey}_${studentId}`
+        console.error(
+            "로또 불러오기 오류:",
+            error
         );
 
-
-    if (!saved) {
         return [];
     }
 
-
-    return JSON.parse(saved);
+    return data || [];
 }
 
+
+// ========================================
+// 🔒 제출 가능 여부
+// ========================================
+
+async function checkSubmitStatus() {
+
+    const tickets = await getTickets();
+
+    if (tickets.length === 0) {
+
+        submitBtn.disabled = false;
+        submitBtn.innerText = "제출하기";
+
+        return;
+    }
+
+    const latestTicket =
+        tickets[tickets.length - 1];
+
+    if (latestTicket.confirmed === true) {
+
+        submitBtn.disabled = false;
+        submitBtn.innerText = "제출하기";
+
+    } else {
+
+        submitBtn.disabled = true;
+        submitBtn.innerText =
+            "🔒 관리자 확인 대기 중";
+    }
+}
 
 
 // ========================================
 // 📤 로또 제출
 // ========================================
 
-const submitBtn =
-    document.getElementById("submitBtn");
+submitBtn.onclick = async () => {
 
-
-
-// ========================================
-// 🔒 제출 가능 여부 확인
-// ========================================
-
-function checkSubmitStatus() {
-
-    const studentId =
-        localStorage.getItem("studentId");
-
+    const studentId = getStudentId();
 
     if (!studentId) {
+
+        alert("학번 정보를 찾을 수 없습니다.");
         return;
     }
 
-
-    const submitLocked =
-        localStorage.getItem(
-            `submitLocked_${studentId}`
-        ) === "true";
-
-
-    if (submitLocked) {
-
-        submitBtn.disabled = true;
-
-        submitBtn.innerText =
-            "🔒 제출 확인 대기 중";
-
-    } else {
-
-        submitBtn.disabled = false;
-
-        submitBtn.innerText =
-            "제출하기";
-    }
-}
-
-
-
-// ========================================
-// 📤 제출 버튼
-// ========================================
-
-submitBtn.onclick = () => {
-
-    const studentId =
-        localStorage.getItem("studentId");
-
-
-    const submitLocked =
-        localStorage.getItem(
-            `submitLocked_${studentId}`
-        ) === "true";
-
-
-    if (submitLocked) {
-
-        alert(
-            "아직 이전 로또의 확인이 완료되지 않았습니다.\n\n" +
-            "관리자에게 확인을 요청해주세요."
-        );
-
-        return;
-    }
-
-
-    // 6개 선택 확인
     if (selected.length !== 6) {
 
-        alert(
-            "번호를 6개 선택해주세요."
-        );
-
+        alert("번호를 6개 선택해주세요.");
         return;
     }
 
 
-    if (!studentId) {
+    // 최신 제출 확인
+    const tickets = await getTickets();
 
-        alert(
-            "학번 정보를 찾을 수 없습니다."
-        );
+    if (tickets.length > 0) {
 
-        return;
+        const latestTicket =
+            tickets[tickets.length - 1];
+
+        if (latestTicket.confirmed !== true) {
+
+            alert(
+                "아직 이전 로또의 확인이 완료되지 않았습니다.\n\n" +
+                "관리자에게 확인을 요청해주세요."
+            );
+
+            return;
+        }
     }
 
 
-    const weekKey =
-        getWeekKey();
+    const { data, error } = await db
+        .from("tickets")
+        .insert({
+            student_id: studentId,
+            numbers: selected,
+            submitted_at: new Date().toISOString(),
+            confirmed: false
+        })
+        .select();
 
 
-    const storageKey =
-        `tickets_${weekKey}_${studentId}`;
+    if (error) {
 
+        console.error(
+            "로또 제출 오류:",
+            error
+        );
 
-    let tickets =
-        getTickets();
-
-
-    const now =
-        new Date();
-
-
-    const submittedAt =
-        now.toLocaleString("ko-KR");
-
-
-    // 새로운 로또 추가
-    tickets.push({
-
-        numbers: [...selected],
-
-        submittedAt: submittedAt
-    });
-
-
-    // 저장
-    localStorage.setItem(
-        storageKey,
-        JSON.stringify(tickets)
-    );
-
-
-    // 🔒 제출 잠금
-    localStorage.setItem(
-        `submitLocked_${studentId}`,
-        "true"
-    );
+        alert("로또 제출에 실패했습니다.");
+        return;
+    }
 
 
     alert(
-        `${tickets.length}번째 로또 제출 완료!\n\n` +
-        selected.join(", ") +
-        `\n\n` +
+        `${data[0].numbers.join(", ")}\n\n` +
+        "로또 제출 완료!\n" +
         "관리자 확인 후 다음 로또를 제출할 수 있습니다."
     );
 
 
-    // 번호 선택 초기화
     selected = [];
-
 
     document
         .querySelectorAll(".ball")
         .forEach(ball => {
-
-            ball.classList.remove(
-                "selected"
-            );
+            ball.classList.remove("selected");
         });
 
+    count.innerText = "선택 : 0 / 6";
 
-    count.innerText =
-        "선택 : 0 / 6";
-
-
-    checkSubmitStatus();
-
-    showMyResults();
+    await checkSubmitStatus();
+    await showMyResults();
 };
 
 
-
 // ========================================
-// 🏆 당첨 결과 계산
+// 🏆 결과
 // ========================================
 
-function showMyResults() {
+async function showMyResults() {
 
     const resultBox =
         document.getElementById("myResults");
-
 
     if (!resultBox) {
         return;
     }
 
-
     resultBox.innerHTML = "";
 
-
-    // 현재 학생
-    const studentId =
-        localStorage.getItem("studentId");
-
+    const studentId = getStudentId();
 
     if (!studentId) {
         return;
     }
 
 
-    // 추첨 결과 가져오기
-    const savedDraw =
-        localStorage.getItem("drawResult");
+    // 현재는 추첨 결과를 localStorage에서 읽지 않고
+    // 아래 draw_results 테이블에서 읽음
+
+    const { data: drawData, error: drawError } =
+        await db
+            .from("draw_results")
+            .select("*")
+            .order("id", { ascending: false })
+            .limit(1)
+            .maybeSingle();
 
 
-    // 아직 추첨하지 않았다면
-    if (!savedDraw) {
+    if (drawError) {
 
-        const text =
-            document.createElement("p");
+        console.error(
+            "추첨 결과 불러오기 오류:",
+            drawError
+        );
 
-
-        text.innerText =
-            "🎲 아직 추첨 결과가 없습니다.";
-
-
-        resultBox.appendChild(text);
+        resultBox.innerHTML =
+            "<p>🎲 아직 추첨 결과가 없습니다.</p>";
 
         return;
     }
 
 
-    let drawData =
-        JSON.parse(savedDraw);
+    if (!drawData) {
 
+        resultBox.innerHTML =
+            "<p>🎲 아직 추첨 결과가 없습니다.</p>";
 
-    // 예전 버전 데이터 대응
-    if (Array.isArray(drawData)) {
-
-        drawData = {
-
-            date: "이전 추첨",
-
-            numbers: drawData
-        };
+        return;
     }
 
 
-    const tickets =
-        getTickets();
+    const tickets = await getTickets();
 
-
-    // 제출한 로또가 없다면
     if (tickets.length === 0) {
 
-        const text =
-            document.createElement("p");
-
-
-        text.innerText =
-            "아직 제출한 로또가 없습니다.";
-
-
-        resultBox.appendChild(text);
+        resultBox.innerHTML =
+            "<p>아직 제출한 로또가 없습니다.</p>";
 
         return;
     }
 
 
-    // ========================================
-    // 🎉 추첨 결과 제목
-    // ========================================
-
-    const title =
-        document.createElement("h2");
-
+    const title = document.createElement("h2");
 
     title.innerText =
-        `🏆 ${drawData.date} 결과`;
-
+        `🏆 ${drawData.draw_date} 결과`;
 
     resultBox.appendChild(title);
 
@@ -454,34 +332,29 @@ function showMyResults() {
     const winningNumbers =
         document.createElement("p");
 
-
     winningNumbers.innerText =
         `당첨 번호: ${drawData.numbers.join(", ")}`;
 
+    resultBox.appendChild(winningNumbers);
 
-    resultBox.appendChild(
-        winningNumbers
-    );
-
-
-
-    // ========================================
-    // 🎟️ 각각의 로또 당첨 결과
-    // ========================================
 
     tickets.forEach((ticket, index) => {
 
         const ticketBox =
             document.createElement("div");
 
-
         ticketBox.className =
             "my-result-ticket";
 
 
-        // 맞은 번호 개수
+        const numbers =
+            Array.isArray(ticket.numbers)
+                ? ticket.numbers
+                : [];
+
+
         const matchCount =
-            ticket.numbers.filter(
+            numbers.filter(
                 number =>
                     drawData.numbers.includes(number)
             ).length;
@@ -490,20 +363,11 @@ function showMyResults() {
         const ticketTitle =
             document.createElement("p");
 
-
         ticketTitle.innerText =
-            `${index + 1}장: ` +
-            ticket.numbers.join(", ");
+            `${index + 1}장: ${numbers.join(", ")}`;
 
+        ticketBox.appendChild(ticketTitle);
 
-        ticketBox.appendChild(
-            ticketTitle
-        );
-
-
-        // ====================================
-        // 🏆 당첨 여부
-        // ====================================
 
         const result =
             document.createElement("strong");
@@ -526,23 +390,17 @@ function showMyResults() {
         }
 
 
-        ticketBox.appendChild(
-            result
-        );
+        ticketBox.appendChild(result);
 
-
-        resultBox.appendChild(
-            ticketBox
-        );
+        resultBox.appendChild(ticketBox);
     });
 }
 
 
-
 // ========================================
-// 📂 페이지를 열었을 때
+// 🚀 시작
 // ========================================
 
+createLottoBoard();
 checkSubmitStatus();
-
 showMyResults();
