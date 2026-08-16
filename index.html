@@ -1,12 +1,24 @@
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
+
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
     <title>🍀 MathLotto</title>
 
-    <link rel="stylesheet" href="css/style.css">
+    <link
+        rel="stylesheet"
+        href="css/style.css"
+    >
+
 </head>
+
 
 <body>
 
@@ -19,6 +31,7 @@
         행운의 번호를 선택하세요!
     </p>
 
+
     <div class="card">
 
         <label>학번</label>
@@ -26,7 +39,8 @@
         <input
             type="text"
             id="studentId"
-            placeholder="예: 2619">
+            placeholder="예: 2619"
+        >
 
         <button id="loginBtn">
             인증하기
@@ -36,7 +50,17 @@
 
 </div>
 
+
+<!-- Supabase 라이브러리 -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<!-- Supabase 설정 -->
+<script src="js/supabase.js"></script>
+
+<!-- 로그인 -->
 <script src="js/script.js"></script>
 
+
 </body>
+
 </html>
