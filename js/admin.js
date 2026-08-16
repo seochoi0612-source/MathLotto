@@ -15,87 +15,217 @@ const DEFAULT_NUMBERS =
 
 
 // ========================================
+// 👩‍🎓 학생 전체 데이터 가져오기
+// ========================================
+
+async function getAllStudents() {
+
+    const { data, error } =
+        await db
+            .from("students")
+            .select("*");
+
+    if (error) {
+
+        console.error(
+            "학생 데이터 불러오기 오류:",
+            error
+        );
+
+        return [];
+    }
+
+    console.log(
+        "Supabase 학생 데이터:",
+        data
+    );
+
+    return data || [];
+}
+
+
+// ========================================
 // 👩‍🎓 학생 목록
 // ========================================
 
-for (let i = 1; i <= 19; i++) {
+async function loadStudents() {
 
-    const studentId =
-        "26" + String(i).padStart(2, "0");
+    studentList.innerHTML = "";
 
-
-    const student =
-        document.createElement("div");
-
-    student.className = "student";
+    const studentsData =
+        await getAllStudents();
 
 
-    // 학번
-    const idText =
-        document.createElement("span");
+    for (let i = 1; i <= 19; i++) {
 
-    idText.className = "student-id";
-
-    idText.innerText = studentId;
+        const studentId =
+            "26" + String(i).padStart(2, "0");
 
 
-    // 상태
-    const status =
-        document.createElement("span");
+        // ====================================
+        // DB에서 학생 찾기
+        // ====================================
 
-    status.className = "status";
-
-
-    // 버튼
-    const button =
-        document.createElement("button");
-
-    button.className = "confirm-btn";
-    button.type = "button";
+        const studentData =
+            studentsData.find(
+                student =>
+                    String(student.student_id) === studentId
+            );
 
 
-    // ========================================
-    // 학생 상태 + 로또 상태 불러오기
-    // ========================================
+        console.log(
+            `${studentId} 학생 검색 결과:`,
+            studentData
+        );
 
-    async function updateStatus() {
 
-        // 학생 인증 상태
-        const {
-            data: studentData,
-            error: studentError
-        } = await db
+        // ====================================
+        // 학생 박스
+        // ====================================
+
+        const student =
+            document.createElement("div");
+
+        student.className =
+            "student";
+
+
+        // 학번
+        const idText =
+            document.createElement("span");
+
+        idText.className =
+            "student-id";
+
+        idText.innerText =
+            studentId;
+
+
+        // 상태
+        const status =
+            document.createElement("span");
+
+        status.className =
+            "status";
+
+
+        // 버튼
+        const button =
+            document.createElement("button");
+
+        button.className =
+            "confirm-btn";
+
+        button.innerText =
+            "확인";
+
+
+        // ====================================
+        // 학생 데이터가 없는 경우
+        // ====================================
+
+        if (!studentData) {
+
+            status.innerText =
+                "학생 정보 확인 필요";
+
+            status.className =
+                "status not-confirmed";
+
+            /*
+             * 중요:
+             * 버튼을 disabled 하지 않는다.
+             * 2602 / 2603 때문에 버튼 자체가
+             * 회색으로 잠기는 문제를 방지한다.
+             */
+
+        } else {
+
+            await updateStudentStatus(
+                student,
+                status,
+                button,
+                studentId
+            );
+        }
+
+
+        // ====================================
+        // 확인 버튼
+        // ====================================
+
+        button.addEventListener(
+            "click",
+            async function () {
+
+                await confirmStudent(
+                    student,
+                    status,
+                    button,
+                    studentId
+                );
+
+            }
+        );
+
+
+        student.appendChild(idText);
+        student.appendChild(status);
+        student.appendChild(button);
+
+        studentList.appendChild(student);
+    }
+}
+
+
+// ========================================
+// 👩‍🎓 학생 상태 업데이트
+// ========================================
+
+async function updateStudentStatus(
+    student,
+    status,
+    button,
+    studentId
+) {
+
+    // ====================================
+    // 학생 정보
+    // ====================================
+
+    const { data: studentData, error: studentError } =
+        await db
             .from("students")
-            .select("confirmed")
+            .select("student_id, confirmed")
             .eq("student_id", studentId)
             .maybeSingle();
 
 
-        if (studentError) {
+    if (studentError) {
 
-            console.error(
-                `${studentId} 학생 상태 오류:`,
-                studentError
-            );
+        console.error(
+            `${studentId} 학생 상태 오류:`,
+            studentError
+        );
 
-            status.innerText = "오류";
+        status.innerText =
+            "조회 오류";
 
-            return;
-        }
-
-
-        const confirmed =
-            studentData?.confirmed === true;
+        return;
+    }
 
 
-        // ========================================
-        // 최근 로또
-        // ========================================
+    const confirmed =
+        studentData &&
+        studentData.confirmed === true;
 
-        const {
-            data: latestTicket,
-            error: ticketError
-        } = await db
+
+    // ====================================
+    // 최근 로또
+    // ====================================
+
+    const { data: latestTicket, error: ticketError } =
+        await db
             .from("tickets")
             .select(
                 "id, numbers, submitted_at, confirmed"
@@ -108,479 +238,395 @@ for (let i = 1; i <= 19; i++) {
             .maybeSingle();
 
 
-        if (ticketError) {
+    if (ticketError) {
 
-            console.error(
-                `${studentId} 로또 불러오기 오류:`,
-                ticketError
-            );
-        }
-
-
-        // 기존 티켓 영역 제거
-        const oldTickets =
-            student.querySelector(".tickets");
-
-        if (oldTickets) {
-            oldTickets.remove();
-        }
-
-
-        // ========================================
-        // 학생 인증 상태 표시
-        // ========================================
-
-        if (confirmed) {
-
-            status.innerText =
-                "✅ 확인됨";
-
-            status.className =
-                "status confirmed";
-
-        } else {
-
-            status.innerText =
-                "미확인";
-
-            status.className =
-                "status not-confirmed";
-        }
-
-
-        // ========================================
-        // 로또 상태 표시
-        // ========================================
-
-        if (latestTicket) {
-
-            const ticketsBox =
-                document.createElement("div");
-
-            ticketsBox.className =
-                "tickets";
-
-
-            const title =
-                document.createElement("div");
-
-            title.className =
-                "tickets-title";
-
-            title.innerText =
-                "🔴 최근 로또 제출";
-
-
-            ticketsBox.appendChild(title);
-
-
-            const ticketText =
-                document.createElement("div");
-
-            ticketText.className =
-                "ticket";
-
-
-            let numbersText = "";
-
-
-            if (Array.isArray(latestTicket.numbers)) {
-
-                numbersText =
-                    latestTicket.numbers.join(", ");
-
-            } else {
-
-                numbersText =
-                    String(latestTicket.numbers ?? "");
-            }
-
-
-            ticketText.innerText =
-                numbersText;
-
-
-            ticketsBox.appendChild(ticketText);
-
-
-            const ticketStatus =
-                document.createElement("div");
-
-            ticketStatus.className =
-                "ticket-status";
-
-
-            if (latestTicket.confirmed === true) {
-
-                ticketStatus.innerText =
-                    "✅ 로또 확인 완료";
-
-            } else {
-
-                ticketStatus.innerText =
-                    "⏳ 로또 확인 대기";
-            }
-
-
-            ticketsBox.appendChild(ticketStatus);
-
-
-            student.appendChild(ticketsBox);
-
-        } else {
-
-            const noTicket =
-                document.createElement("div");
-
-            noTicket.className =
-                "tickets no-ticket";
-
-            noTicket.innerText =
-                "⚪ 로또 미제출";
-
-
-            student.appendChild(noTicket);
-        }
-
-
-        // ========================================
-        // 버튼 상태
-        // ========================================
-
-        if (!confirmed) {
-
-            button.innerText =
-                "학생 확인";
-
-        } else if (
-            latestTicket &&
-            latestTicket.confirmed !== true
-        ) {
-
-            button.innerText =
-                "로또 확인";
-
-        } else {
-
-            button.innerText =
-                "확인 완료";
-        }
+        console.error(
+            `${studentId} 로또 불러오기 오류:`,
+            ticketError
+        );
     }
 
 
-    // ========================================
-    // ✅ 확인 버튼
-    // ========================================
+    // 기존 티켓 표시 제거
+    const oldTickets =
+        student.querySelector(".tickets");
 
-    button.addEventListener(
-        "click",
-        async function () {
+    if (oldTickets) {
+        oldTickets.remove();
+    }
 
-            console.log(
-                "확인 버튼 클릭됨:",
-                studentId
-            );
 
+    // ====================================
+    // 학생 인증 상태
+    // ====================================
 
-            button.disabled = true;
+    if (confirmed) {
 
+        status.innerText =
+            "✅ 확인됨";
 
-            try {
+        status.className =
+            "status confirmed";
 
-                // ====================================
-                // 현재 학생 상태 확인
-                // ====================================
+    } else {
 
-                const {
-                    data: studentData,
-                    error: studentError
-                } = await db
-                    .from("students")
-                    .select(
-                        "student_id, confirmed"
-                    )
-                    .eq(
-                        "student_id",
-                        studentId
-                    )
-                    .maybeSingle();
+        status.innerText =
+            "미확인";
 
+        status.className =
+            "status not-confirmed";
+    }
 
-                if (studentError) {
 
-                    console.error(
-                        "학생 상태 확인 오류:",
-                        studentError
-                    );
+    // ====================================
+    // 최근 로또 표시
+    // ====================================
 
-                    alert(
-                        "학생 정보를 불러오지 못했습니다."
-                    );
+    if (latestTicket) {
 
-                    return;
-                }
+        const ticketsBox =
+            document.createElement("div");
 
+        ticketsBox.className =
+            "tickets";
 
-                if (!studentData) {
 
-                    alert(
-                        `${studentId} 학생 정보를 찾을 수 없습니다.`
-                    );
+        const title =
+            document.createElement("div");
 
-                    return;
-                }
+        title.className =
+            "tickets-title";
 
+        title.innerText =
+            "🔴 최근 로또 제출";
 
-                const confirmed =
-                    studentData.confirmed === true;
+        ticketsBox.appendChild(title);
 
 
-                // ====================================
-                // 최근 로또 확인
-                // ====================================
+        const ticketText =
+            document.createElement("div");
 
-                const {
-                    data: latestTicket,
-                    error: ticketError
-                } = await db
-                    .from("tickets")
-                    .select(
-                        "id, confirmed"
-                    )
-                    .eq(
-                        "student_id",
-                        studentId
-                    )
-                    .order("id", {
-                        ascending: false
-                    })
-                    .limit(1)
-                    .maybeSingle();
+        ticketText.className =
+            "ticket";
 
-
-                if (ticketError) {
 
-                    console.error(
-                        "최근 로또 확인 오류:",
-                        ticketError
-                    );
+        if (Array.isArray(latestTicket.numbers)) {
 
-                    alert(
-                        "학생의 로또 정보를 불러오지 못했습니다."
-                    );
+            ticketText.innerText =
+                latestTicket.numbers.join(", ");
 
-                    return;
-                }
+        } else {
 
-
-                // ====================================
-                // ① 학생 미확인
-                // ====================================
-
-                if (!confirmed) {
-
-                    const {
-                        data: updatedStudent,
-                        error: updateError
-                    } = await db
-                        .from("students")
-                        .update({
-                            confirmed: true
-                        })
-                        .eq(
-                            "student_id",
-                            studentId
-                        )
-                        .select(
-                            "student_id, confirmed"
-                        )
-                        .maybeSingle();
-
-
-                    if (updateError) {
-
-                        console.error(
-                            "학생 인증 저장 오류:",
-                            updateError
-                        );
-
-                        alert(
-                            "학생 인증 저장에 실패했습니다."
-                        );
-
-                        return;
-                    }
-
-
-                    // 실제로 변경되었는지 확인
-                    if (
-                        !updatedStudent ||
-                        updatedStudent.confirmed !== true
-                    ) {
-
-                        console.error(
-                            "학생 인증 업데이트 결과 이상:",
-                            updatedStudent
-                        );
-
-                        alert(
-                            "학생 인증이 저장되지 않았습니다."
-                        );
-
-                        return;
-                    }
-
-
-                    // 이미 제출된 로또가 있다면
-                    // 가장 최근 로또도 확인 처리
-                    if (latestTicket) {
-
-                        const {
-                            error:
-                                ticketConfirmError
-                        } = await db
-                            .from("tickets")
-                            .update({
-                                confirmed: true
-                            })
-                            .eq(
-                                "id",
-                                latestTicket.id
-                            );
-
-
-                        if (ticketConfirmError) {
-
-                            console.error(
-                                "로또 확인 저장 오류:",
-                                ticketConfirmError
-                            );
-                        }
-                    }
-
-
-                    alert(
-                        `${studentId} 학생이 확인되었습니다.\n\n` +
-                        "이제 로또를 제출할 수 있습니다."
-                    );
-
-
-                    return;
-                }
-
-
-                // ====================================
-                // ② 학생 확인됨 + 로또 없음
-                // ====================================
-
-                if (!latestTicket) {
-
-                    alert(
-                        `${studentId} 학생은 이미 확인되었습니다.\n\n` +
-                        "아직 제출한 로또가 없습니다."
-                    );
-
-                    return;
-                }
-
-
-                // ====================================
-                // ③ 로또 미확인
-                // ====================================
-
-                if (
-                    latestTicket.confirmed !== true
-                ) {
-
-                    const {
-                        data: updatedTicket,
-                        error: confirmError
-                    } = await db
-                        .from("tickets")
-                        .update({
-                            confirmed: true
-                        })
-                        .eq(
-                            "id",
-                            latestTicket.id
-                        )
-                        .select(
-                            "id, confirmed"
-                        )
-                        .maybeSingle();
-
-
-                    if (confirmError) {
-
-                        console.error(
-                            "로또 확인 오류:",
-                            confirmError
-                        );
-
-                        alert(
-                            "로또 확인에 실패했습니다."
-                        );
-
-                        return;
-                    }
-
-
-                    if (
-                        !updatedTicket ||
-                        updatedTicket.confirmed !== true
-                    ) {
-
-                        console.error(
-                            "로또 업데이트 결과 이상:",
-                            updatedTicket
-                        );
-
-                        alert(
-                            "로또 확인이 저장되지 않았습니다."
-                        );
-
-                        return;
-                    }
-
-
-                    alert(
-                        `${studentId} 학생의 로또가 확인되었습니다.\n\n` +
-                        "이제 다음 로또를 제출할 수 있습니다."
-                    );
-
-
-                    return;
-                }
-
-
-                // ====================================
-                // ④ 이미 확인된 로또
-                // ====================================
-
-                alert(
-                    `${studentId} 학생의 최근 로또는 이미 확인되었습니다.`
-                );
-
-            } finally {
-
-                button.disabled = false;
-
-                await updateStatus();
-            }
+            ticketText.innerText =
+                latestTicket.numbers;
         }
-    );
 
 
-    student.appendChild(idText);
-    student.appendChild(status);
-    student.appendChild(button);
-
-    studentList.appendChild(student);
+        ticketsBox.appendChild(ticketText);
 
 
-    updateStatus();
+        // 로또 확인 상태
+        const ticketStatus =
+            document.createElement("div");
+
+        ticketStatus.className =
+            "ticket-status";
+
+
+        if (latestTicket.confirmed === true) {
+
+            ticketStatus.innerText =
+                "✅ 로또 확인 완료";
+
+        } else {
+
+            ticketStatus.innerText =
+                "⏳ 로또 확인 대기";
+        }
+
+
+        ticketsBox.appendChild(ticketStatus);
+
+
+        student.appendChild(ticketsBox);
+
+    } else {
+
+        const noTicket =
+            document.createElement("div");
+
+        noTicket.className =
+            "tickets no-ticket";
+
+        noTicket.innerText =
+            "⚪ 로또 미제출";
+
+        student.appendChild(noTicket);
+    }
+
+
+    // ====================================
+    // 버튼 상태
+    // ====================================
+
+    if (!latestTicket) {
+
+        button.innerText =
+            "확인";
+
+    } else if (latestTicket.confirmed === true) {
+
+        button.innerText =
+            "확인 완료";
+
+    } else {
+
+        button.innerText =
+            "로또 확인";
+    }
+
+
+    // 혹시 disabled 상태가 남아 있다면 해제
+    button.disabled = false;
 }
 
+
+// ========================================
+// ✅ 확인 버튼
+// ========================================
+
+async function confirmStudent(
+    student,
+    status,
+    button,
+    studentId
+) {
+
+    // ====================================
+    // 학생 상태 가져오기
+    // ====================================
+
+    const { data: studentData, error: studentError } =
+        await db
+            .from("students")
+            .select(
+                "student_id, confirmed"
+            )
+            .eq("student_id", studentId)
+            .maybeSingle();
+
+
+    if (studentError) {
+
+        console.error(
+            "학생 상태 확인 오류:",
+            studentError
+        );
+
+        alert(
+            "학생 정보를 불러오지 못했습니다."
+        );
+
+        return;
+    }
+
+
+    // ====================================
+    // 학생 정보 없음
+    // ====================================
+
+    if (!studentData) {
+
+        alert(
+            `${studentId} 학생 정보를 찾을 수 없습니다.`
+        );
+
+        return;
+    }
+
+
+    const confirmed =
+        studentData.confirmed === true;
+
+
+    // ====================================
+    // 최근 로또 가져오기
+    // ====================================
+
+    const { data: latestTicket, error: ticketError } =
+        await db
+            .from("tickets")
+            .select(
+                "id, confirmed"
+            )
+            .eq("student_id", studentId)
+            .order("id", {
+                ascending: false
+            })
+            .limit(1)
+            .maybeSingle();
+
+
+    if (ticketError) {
+
+        console.error(
+            "최근 로또 확인 오류:",
+            ticketError
+        );
+
+        alert(
+            "학생의 로또 정보를 불러오지 못했습니다."
+        );
+
+        return;
+    }
+
+
+    // ====================================
+    // ① 학생 미확인
+    // ====================================
+
+    if (!confirmed) {
+
+        const { data: updatedStudent, error: updateError } =
+            await db
+                .from("students")
+                .update({
+                    confirmed: true
+                })
+                .eq("student_id", studentId)
+                .select();
+
+
+        if (updateError) {
+
+            console.error(
+                "학생 인증 저장 오류:",
+                updateError
+            );
+
+            alert(
+                "학생 인증 저장에 실패했습니다."
+            );
+
+            return;
+        }
+
+
+        console.log(
+            `${studentId} 학생 인증 저장 결과:`,
+            updatedStudent
+        );
+
+
+        // 이미 제출된 로또가 있다면
+        // 최근 로또도 확인 처리
+        if (latestTicket) {
+
+            const { error: ticketConfirmError } =
+                await db
+                    .from("tickets")
+                    .update({
+                        confirmed: true
+                    })
+                    .eq(
+                        "id",
+                        latestTicket.id
+                    );
+
+
+            if (ticketConfirmError) {
+
+                console.error(
+                    "로또 확인 저장 오류:",
+                    ticketConfirmError
+                );
+            }
+        }
+
+
+        alert(
+            `${studentId} 학생이 확인되었습니다.\n\n` +
+            "이제 로또를 제출할 수 있습니다."
+        );
+    }
+
+
+    // ====================================
+    // ② 학생 확인됨 + 로또 없음
+    // ====================================
+
+    else if (!latestTicket) {
+
+        alert(
+            `${studentId} 학생은 이미 확인되었습니다.\n\n` +
+            "아직 제출한 로또가 없습니다."
+        );
+    }
+
+
+    // ====================================
+    // ③ 로또 미확인
+    // ====================================
+
+    else if (
+        latestTicket.confirmed !== true
+    ) {
+
+        const { error: confirmError } =
+            await db
+                .from("tickets")
+                .update({
+                    confirmed: true
+                })
+                .eq(
+                    "id",
+                    latestTicket.id
+                );
+
+
+        if (confirmError) {
+
+            console.error(
+                "로또 확인 오류:",
+                confirmError
+            );
+
+            alert(
+                "로또 확인에 실패했습니다."
+            );
+
+            return;
+        }
+
+
+        alert(
+            `${studentId} 학생의 로또가 확인되었습니다.\n\n` +
+            "이제 다음 로또를 제출할 수 있습니다."
+        );
+    }
+
+
+    // ====================================
+    // ④ 이미 확인됨
+    // ====================================
+
+    else {
+
+        alert(
+            `${studentId} 학생의 최근 로또는 이미 확인되었습니다.`
+        );
+    }
+
+
+    // 화면 업데이트
+    await updateStudentStatus(
+        student,
+        status,
+        button,
+        studentId
+    );
+}
 
 
 // ========================================
@@ -598,24 +644,22 @@ const numberStatus =
 
 
 // ========================================
-// ☁️ 번호 가져오기
+// 번호 가져오기
 // ========================================
 
 async function getLottoNumbers() {
 
-    const {
-        data,
-        error
-    } = await db
-        .from("settings")
-        .select(
-            "id, numbers"
-        )
-        .order("id", {
-            ascending: true
-        })
-        .limit(1)
-        .maybeSingle();
+    const { data, error } =
+        await db
+            .from("settings")
+            .select(
+                "id, numbers"
+            )
+            .order("id", {
+                ascending: true
+            })
+            .limit(1)
+            .maybeSingle();
 
 
     if (error) {
@@ -649,21 +693,22 @@ async function getLottoNumbers() {
 
 async function loadNumberSettings() {
 
-    if (!numberInput || !numberStatus) {
-        return;
-    }
-
-
     const numbers =
         await getLottoNumbers();
 
 
-    numberInput.value =
-        numbers.join(",");
+    if (numberInput) {
+
+        numberInput.value =
+            numbers.join(",");
+    }
 
 
-    numberStatus.innerText =
-        `현재 번호: ${numbers.join(", ")}`;
+    if (numberStatus) {
+
+        numberStatus.innerText =
+            `현재 번호: ${numbers.join(", ")}`;
+    }
 }
 
 
@@ -753,14 +798,15 @@ if (saveNumbersBtn) {
             const {
                 data: settingData,
                 error: settingError
-            } = await db
-                .from("settings")
-                .select("id")
-                .order("id", {
-                    ascending: true
-                })
-                .limit(1)
-                .maybeSingle();
+            } =
+                await db
+                    .from("settings")
+                    .select("id")
+                    .order("id", {
+                        ascending: true
+                    })
+                    .limit(1)
+                    .maybeSingle();
 
 
             if (
@@ -781,17 +827,16 @@ if (saveNumbersBtn) {
             }
 
 
-            const {
-                error: updateError
-            } = await db
-                .from("settings")
-                .update({
-                    numbers: numbers
-                })
-                .eq(
-                    "id",
-                    settingData.id
-                );
+            const { error: updateError } =
+                await db
+                    .from("settings")
+                    .update({
+                        numbers: numbers
+                    })
+                    .eq(
+                        "id",
+                        settingData.id
+                    );
 
 
             if (updateError) {
@@ -823,7 +868,6 @@ if (saveNumbersBtn) {
 loadNumberSettings();
 
 
-
 // ========================================
 // 🎲 추첨
 // ========================================
@@ -839,17 +883,15 @@ const drawResult =
 
 
 // ========================================
-// 🎉 추첨 결과 표시
+// 추첨 결과 표시
 // ========================================
 
 function showDrawResult(drawData) {
 
     if (
         !drawInfo ||
-        !drawResult ||
-        !drawData
+        !drawResult
     ) {
-
         return;
     }
 
@@ -859,11 +901,6 @@ function showDrawResult(drawData) {
 
 
     drawResult.innerHTML = "";
-
-
-    if (!Array.isArray(drawData.numbers)) {
-        return;
-    }
 
 
     drawData.numbers.forEach(
@@ -878,29 +915,29 @@ function showDrawResult(drawData) {
             ball.innerText =
                 number;
 
-            drawResult.appendChild(ball);
+            drawResult.appendChild(
+                ball
+            );
         }
     );
 }
 
 
 // ========================================
-// 📂 기존 추첨 결과 불러오기
+// 기존 추첨 결과 불러오기
 // ========================================
 
 async function loadDrawResult() {
 
-    const {
-        data,
-        error
-    } = await db
-        .from("draw_results")
-        .select("*")
-        .order("id", {
-            ascending: false
-        })
-        .limit(1)
-        .maybeSingle();
+    const { data, error } =
+        await db
+            .from("draw_results")
+            .select("*")
+            .order("id", {
+                ascending: false
+            })
+            .limit(1)
+            .maybeSingle();
 
 
     if (error) {
@@ -924,7 +961,7 @@ async function loadDrawResult() {
 
 
 // ========================================
-// 🎲 추첨하기
+// 추첨하기
 // ========================================
 
 if (drawBtn) {
@@ -1016,14 +1053,15 @@ if (drawBtn) {
             const {
                 data,
                 error
-            } = await db
-                .from("draw_results")
-                .insert({
-                    numbers: numbers,
-                    draw_date: dateText
-                })
-                .select()
-                .single();
+            } =
+                await db
+                    .from("draw_results")
+                    .insert({
+                        numbers: numbers,
+                        draw_date: dateText
+                    })
+                    .select()
+                    .single();
 
 
             if (error) {
@@ -1056,13 +1094,14 @@ if (drawBtn) {
 loadDrawResult();
 
 
-
 // ========================================
 // ⚙️ 전체 데이터 초기화
 // ========================================
 
 const resetAllBtn =
-    document.getElementById("resetAllBtn");
+    document.getElementById(
+        "resetAllBtn"
+    );
 
 
 if (resetAllBtn) {
@@ -1087,15 +1126,16 @@ if (resetAllBtn) {
             // 학생 확인 초기화
             const {
                 error: studentResetError
-            } = await db
-                .from("students")
-                .update({
-                    confirmed: false
-                })
-                .neq(
-                    "student_id",
-                    ""
-                );
+            } =
+                await db
+                    .from("students")
+                    .update({
+                        confirmed: false
+                    })
+                    .neq(
+                        "student_id",
+                        ""
+                    );
 
 
             if (studentResetError) {
@@ -1116,13 +1156,14 @@ if (resetAllBtn) {
             // tickets 삭제
             const {
                 error: ticketResetError
-            } = await db
-                .from("tickets")
-                .delete()
-                .neq(
-                    "id",
-                    0
-                );
+            } =
+                await db
+                    .from("tickets")
+                    .delete()
+                    .neq(
+                        "id",
+                        0
+                    );
 
 
             if (ticketResetError) {
@@ -1143,29 +1184,32 @@ if (resetAllBtn) {
             // settings 초기화
             const {
                 data: settingData
-            } = await db
-                .from("settings")
-                .select("id")
-                .order("id", {
-                    ascending: true
-                })
-                .limit(1)
-                .maybeSingle();
+            } =
+                await db
+                    .from("settings")
+                    .select("id")
+                    .order("id", {
+                        ascending: true
+                    })
+                    .limit(1)
+                    .maybeSingle();
 
 
             if (settingData) {
 
                 const {
                     error: settingsResetError
-                } = await db
-                    .from("settings")
-                    .update({
-                        numbers: DEFAULT_NUMBERS
-                    })
-                    .eq(
-                        "id",
-                        settingData.id
-                    );
+                } =
+                    await db
+                        .from("settings")
+                        .update({
+                            numbers:
+                                DEFAULT_NUMBERS
+                        })
+                        .eq(
+                            "id",
+                            settingData.id
+                        );
 
 
                 if (settingsResetError) {
@@ -1187,13 +1231,14 @@ if (resetAllBtn) {
             // draw_results 삭제
             const {
                 error: drawResetError
-            } = await db
-                .from("draw_results")
-                .delete()
-                .neq(
-                    "id",
-                    0
-                );
+            } =
+                await db
+                    .from("draw_results")
+                    .delete()
+                    .neq(
+                        "id",
+                        0
+                    );
 
 
             if (drawResetError) {
@@ -1218,6 +1263,10 @@ if (resetAllBtn) {
 
             localStorage.removeItem(
                 "drawResult"
+            );
+
+            localStorage.removeItem(
+                "studentId"
             );
 
 
@@ -1248,11 +1297,6 @@ if (resetAllBtn) {
             }
 
 
-            localStorage.removeItem(
-                "studentId"
-            );
-
-
             alert(
                 "✅ 전체 데이터가 초기화되었습니다."
             );
@@ -1264,7 +1308,6 @@ if (resetAllBtn) {
 }
 
 
-
 // ========================================
 // 🧪 Supabase 연결 확인
 // ========================================
@@ -1274,9 +1317,10 @@ async function testSupabase() {
     const {
         data,
         error
-    } = await db
-        .from("students")
-        .select("*");
+    } =
+        await db
+            .from("students")
+            .select("*");
 
 
     if (error) {
@@ -1298,3 +1342,10 @@ async function testSupabase() {
 
 
 testSupabase();
+
+
+// ========================================
+// 🚀 시작
+// ========================================
+
+loadStudents();
