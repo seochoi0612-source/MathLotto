@@ -86,7 +86,6 @@ for (let i = 1; i <= 19; i++) {
             ) === "true";
 
 
-        // 이번 주 로또 가져오기
         const weekKey = getWeekKey();
 
         const savedTickets =
@@ -117,8 +116,6 @@ for (let i = 1; i <= 19; i++) {
                 "status confirmed";
 
 
-            // 제출 잠금 상태라면
-            // 다음 제출을 허용하는 버튼
             if (submitLocked) {
 
                 button.innerText =
@@ -178,7 +175,6 @@ for (let i = 1; i <= 19; i++) {
             ticketsBox.appendChild(title);
 
 
-            // 각각의 로또 번호 표시
             tickets.forEach((ticket, index) => {
 
                 const ticketText =
@@ -195,7 +191,6 @@ for (let i = 1; i <= 19; i++) {
             });
 
 
-            // 제출 잠금 상태 표시
             if (submitLocked) {
 
                 const lockedText =
@@ -255,10 +250,6 @@ for (let i = 1; i <= 19; i++) {
                 ) === "true";
 
 
-            // ====================================
-            // ① 아직 인증하지 않은 학생
-            // ====================================
-
             if (!confirmed) {
 
                 localStorage.setItem(
@@ -270,16 +261,11 @@ for (let i = 1; i <= 19; i++) {
                     `${studentId} 학생이 확인되었습니다.\n` +
                     "이제 로또를 제출할 수 있습니다."
                 );
+
             }
-
-
-            // ====================================
-            // ② 이미 인증했고 제출이 잠긴 경우
-            // ====================================
 
             else if (submitLocked) {
 
-                // 🔓 다음 로또 제출 허용
                 localStorage.removeItem(
                     `submitLocked_${studentId}`
                 );
@@ -287,17 +273,10 @@ for (let i = 1; i <= 19; i++) {
                 alert(
                     `${studentId} 학생의 다음 로또 제출이 허용되었습니다.`
                 );
+
             }
 
-
-            // ====================================
-            // ③ 이미 인증했고 제출도 잠기지 않은 경우
-            // ====================================
-
             else {
-
-                // 현재는 아무것도 하지 않음
-                // 인증 상태를 실수로 취소하지 않도록 함
 
                 alert(
                     `${studentId} 학생은 이미 확인되었습니다.`
@@ -310,7 +289,6 @@ for (let i = 1; i <= 19; i++) {
     );
 
 
-    // 학생 화면에 추가
     student.appendChild(idText);
     student.appendChild(status);
     student.appendChild(button);
@@ -319,6 +297,149 @@ for (let i = 1; i <= 19; i++) {
 
     updateStatus();
 }
+
+
+
+// ========================================
+// 🔢 번호 관리
+// ========================================
+
+const numberInput =
+    document.getElementById("numberInput");
+
+const saveNumbersBtn =
+    document.getElementById("saveNumbersBtn");
+
+const numberStatus =
+    document.getElementById("numberStatus");
+
+
+// 현재 번호 가져오기
+function getLottoNumbers() {
+
+    const saved =
+        localStorage.getItem("lottoNumbers");
+
+
+    // 처음에는 1~17
+    if (!saved) {
+
+        return Array.from(
+            { length: 17 },
+            (_, i) => i + 1
+        );
+    }
+
+
+    return JSON.parse(saved);
+}
+
+
+// 현재 번호 표시
+function loadNumberSettings() {
+
+    const numbers =
+        getLottoNumbers();
+
+
+    numberInput.value =
+        numbers.join(",");
+
+
+    numberStatus.innerText =
+        `현재 번호: ${numbers.join(", ")}`;
+}
+
+
+// 번호 저장
+saveNumbersBtn.addEventListener(
+    "click",
+    function () {
+
+        const input =
+            numberInput.value.trim();
+
+
+        if (!input) {
+
+            alert(
+                "번호를 입력해주세요."
+            );
+
+            return;
+        }
+
+
+        const numbers =
+            input
+                .split(",")
+                .map(number => number.trim())
+                .filter(number => number !== "")
+                .map(number => Number(number));
+
+
+        // 숫자인지 확인
+        if (
+            numbers.some(
+                number =>
+                    !Number.isInteger(number)
+            )
+        ) {
+
+            alert(
+                "번호는 숫자로 입력해주세요."
+            );
+
+            return;
+        }
+
+
+        // 중복 확인
+        const uniqueNumbers =
+            [...new Set(numbers)];
+
+
+        if (
+            uniqueNumbers.length !== numbers.length
+        ) {
+
+            alert(
+                "같은 번호를 중복해서 입력할 수 없습니다."
+            );
+
+            return;
+        }
+
+
+        // 최소 6개
+        if (numbers.length < 6) {
+
+            alert(
+                "번호는 최소 6개 이상 입력해주세요."
+            );
+
+            return;
+        }
+
+
+        // 저장
+        localStorage.setItem(
+            "lottoNumbers",
+            JSON.stringify(numbers)
+        );
+
+
+        alert(
+            "번호가 저장되었습니다!"
+        );
+
+
+        loadNumberSettings();
+    }
+);
+
+
+loadNumberSettings();
 
 
 
@@ -385,7 +506,6 @@ function loadDrawResult() {
         JSON.parse(savedResult);
 
 
-    // 이전 버전 데이터 대응
     if (Array.isArray(drawData)) {
 
         showDrawResult({
@@ -412,8 +532,6 @@ drawBtn.addEventListener(
     "click",
     function () {
 
-
-        // 실수 방지 확인창
         const confirmed =
             confirm(
                 "정말 추첨하시겠습니까?\n\n" +
@@ -427,18 +545,37 @@ drawBtn.addEventListener(
 
 
         // ====================================
-        // 1~17 중 랜덤 6개
+        // 🔢 설정된 번호 중 랜덤 6개
         // ====================================
+
+        const availableNumbers =
+            getLottoNumbers();
+
+
+        if (availableNumbers.length < 6) {
+
+            alert(
+                "추첨하려면 최소 6개의 번호가 필요합니다."
+            );
+
+            return;
+        }
+
 
         const numbers = [];
 
 
         while (numbers.length < 6) {
 
-            const number =
+            const randomIndex =
                 Math.floor(
-                    Math.random() * 17
-                ) + 1;
+                    Math.random() *
+                    availableNumbers.length
+                );
+
+
+            const number =
+                availableNumbers[randomIndex];
 
 
             if (!numbers.includes(number)) {
@@ -448,7 +585,6 @@ drawBtn.addEventListener(
         }
 
 
-        // 작은 숫자부터 정렬
         numbers.sort(
             (a, b) => a - b
         );
@@ -476,7 +612,6 @@ drawBtn.addEventListener(
             `${year}년 ${month}월 ${date}일`;
 
 
-        // 날짜 + 번호 저장
         const drawData = {
 
             date: dateText,
@@ -491,7 +626,6 @@ drawBtn.addEventListener(
         );
 
 
-        // 화면 표시
         showDrawResult(drawData);
     }
 );
@@ -518,7 +652,6 @@ resetAllBtn.addEventListener(
     "click",
     function () {
 
-
         const confirmed =
             confirm(
                 "⚠️ 정말 전체 데이터를 초기화하시겠습니까?\n\n" +
@@ -540,25 +673,21 @@ resetAllBtn.addEventListener(
                 String(i).padStart(2, "0");
 
 
-            // 학생 확인 상태 삭제
             localStorage.removeItem(
                 "confirmed_" + studentId
             );
 
 
-            // 예전 데이터 삭제
             localStorage.removeItem(
                 "submitted_" + studentId
             );
 
 
-            // 제출 잠금 삭제
             localStorage.removeItem(
                 `submitLocked_${studentId}`
             );
 
 
-            // 이번 주 로또 삭제
             const weekKey =
                 getWeekKey();
 
@@ -572,6 +701,12 @@ resetAllBtn.addEventListener(
         // 추첨 결과 삭제
         localStorage.removeItem(
             "drawResult"
+        );
+
+
+        // 번호 설정도 기본값으로 되돌림
+        localStorage.removeItem(
+            "lottoNumbers"
         );
 
 
