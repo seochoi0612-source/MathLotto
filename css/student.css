@@ -1,0 +1,153 @@
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:Arial,sans-serif;
+}
+
+body{
+background:#eef8ee;
+display:flex;
+justify-content:center;
+align-items:center;
+height:100vh;
+}
+
+.container{
+
+background:white;
+padding:30px;
+
+border-radius:20px;
+
+box-shadow:0 10px 25px rgba(0,0,0,.15);
+
+text-align:center;
+
+width:420px;
+
+}
+
+h1{
+
+margin-bottom:10px;
+
+color:#2e7d32;
+
+}
+
+#lottoBoard{
+
+display:grid;
+
+grid-template-columns:repeat(5,60px);
+
+gap:15px;
+
+justify-content:center;
+
+margin:30px 0;
+
+}
+
+.ball{
+
+width:60px;
+
+height:60px;
+
+border-radius:50%;
+
+border:3px solid #4CAF50;
+
+display:flex;
+
+justify-content:center;
+
+align-items:center;
+
+font-size:20px;
+
+cursor:pointer;
+
+transition:.2s;
+
+background:white;
+
+}
+
+.ball:hover{
+
+transform:scale(1.08);
+
+}
+
+.selected{
+
+background:#4CAF50;
+
+color:white;
+
+}
+
+button{
+
+padding:13px 30px;
+
+border:none;
+
+border-radius:10px;
+
+background:#4CAF50;
+
+color:white;
+
+font-size:17px;
+
+cursor:pointer;
+
+margin-top:15px;
+
+}
+
+button:hover{
+
+background:#388E3C;
+
+}
+.result-section {
+    margin-top: 25px;
+    padding-top: 20px;
+    border-top: 2px solid #eee;
+}
+
+.result-section h2 {
+    color: #2e7d32;
+    margin-bottom: 10px;
+}
+
+#resultMessage {
+    color: #666;
+    font-size: 14px;
+}
+
+#studentDrawResult {
+    margin-top: 12px;
+}
+
+.student-draw-number {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+
+    width: 42px;
+    height: 42px;
+    margin: 3px;
+
+    border-radius: 50%;
+    background: #4caf50;
+    color: white;
+
+    font-size: 17px;
+    font-weight: bold;
+}

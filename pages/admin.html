@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MathLotto - 관리자</title>
+
+    <link rel="stylesheet" href="../css/admin.css">
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>🍀 MathLotto 관리자</h1>
+
+    <p class="subtitle">
+        학생의 수학 문제 풀이를 확인해주세요.
+    </p>
+
+    <!-- 학생 인증 -->
+    <div class="card">
+
+        <h2>학생 인증</h2>
+
+        <p class="description">
+            실제로 수학 문제를 푼 학생을 확인한 후<br>
+            해당 학생의 「확인」 버튼을 눌러주세요.
+        </p>
+
+        <div id="studentList"></div>
+
+    </div>
+
+
+    <!-- 추첨 -->
+    <div class="card draw-card">
+
+        <h2>🎲 추첨</h2>
+
+        <p id="drawInfo">
+            아직 추첨하지 않았습니다.
+        </p>
+
+        <button id="drawBtn">
+            🎲 추첨하기
+        </button>
+
+        <div id="drawResult"></div>
+
+    </div>
+
+
+    <!-- 데이터 관리 -->
+    <div class="card reset-card">
+
+        <h2>⚙️ 데이터 관리</h2>
+
+        <button id="resetAllBtn" class="reset-btn danger">
+            ⚠️ 전체 데이터 초기화
+        </button>
+
+    </div>
+
+</div>
+
+<script src="../js/admin.js"></script>
+
+</body>
+</html>

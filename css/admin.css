@@ -1,0 +1,199 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: Arial, sans-serif;
+}
+
+body {
+    background: #eef8ee;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.container {
+    width: 420px;
+}
+
+h1 {
+    text-align: center;
+    color: #2e7d32;
+    margin-bottom: 10px;
+}
+
+.subtitle {
+    text-align: center;
+    color: #555;
+    margin-bottom: 25px;
+}
+
+.card {
+    background: white;
+    padding: 25px;
+    border-radius: 20px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, .15);
+}
+
+h2 {
+    color: #333;
+    margin-bottom: 10px;
+}
+
+.description {
+    color: #666;
+    font-size: 14px;
+    line-height: 1.6;
+    margin-bottom: 20px;
+}
+
+.student {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px;
+    margin-bottom: 10px;
+    border-radius: 10px;
+    background: #f5f5f5;
+}
+
+.student-id {
+    font-weight: bold;
+    font-size: 16px;
+}
+
+.status {
+    font-size: 13px;
+    margin-left: auto;
+    margin-right: 10px;
+}
+
+.status.confirmed {
+    color: #2e7d32;
+}
+
+.status.not-confirmed {
+    color: #999;
+}
+
+.confirm-btn {
+    border: none;
+    border-radius: 8px;
+    padding: 8px 12px;
+    background: #4caf50;
+    color: white;
+    cursor: pointer;
+}
+
+.confirm-btn:hover {
+    background: #388e3c;
+}
+
+.confirm-btn.cancel {
+    background: #999;
+}
+
+.confirm-btn.cancel:hover {
+    background: #777;
+}
+.submitted {
+    color: #d32f2f;
+    font-size: 13px;
+    font-weight: bold;
+    margin-left: 8px;
+}
+.draw-section {
+    margin-top: 30px;
+    padding-top: 25px;
+    border-top: 2px solid #eee;
+}
+
+.draw-section h2 {
+    margin-bottom: 10px;
+}
+
+#drawInfo {
+    color: #666;
+    margin-bottom: 15px;
+}
+
+#drawBtn {
+    width: 100%;
+    padding: 13px;
+    border: none;
+    border-radius: 10px;
+    background: #4caf50;
+    color: white;
+    font-size: 17px;
+    cursor: pointer;
+}
+
+#drawBtn:hover {
+    background: #388e3c;
+}
+
+#drawResult {
+    margin-top: 20px;
+    text-align: center;
+}
+
+.draw-number {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+
+    width: 45px;
+    height: 45px;
+
+    border-radius: 50%;
+
+    background: #4caf50;
+    color: white;
+
+    font-size: 18px;
+    font-weight: bold;
+
+    margin: 4px;
+}
+.reset-btn {
+    width: 100%;
+    padding: 13px;
+    margin-top: 8px;
+    border: none;
+    border-radius: 10px;
+    background: #4caf50;
+    color: white;
+    font-size: 17px;
+    cursor: pointer;
+}
+
+.reset-btn:hover {
+    background: #388e3c;
+}
+.tickets {
+    width: 100%;
+    margin-top: 10px;
+    padding: 10px;
+    background: #f1f8f1;
+    border-radius: 10px;
+    text-align: left;
+}
+
+.tickets-title {
+    font-weight: bold;
+    color: #d32f2f;
+    margin-bottom: 6px;
+}
+
+.ticket {
+    padding: 4px 0;
+    font-size: 14px;
+    color: #444;
+}
+
+.no-ticket {
+    color: #888;
+    background: #f5f5f5;
+}
