@@ -33,6 +33,7 @@ h1 {
 .card {
     background: white;
     padding: 25px;
+    margin-bottom: 20px;
     border-radius: 20px;
     box-shadow: 0 10px 25px rgba(0, 0, 0, .15);
 }
@@ -49,12 +50,20 @@ h2 {
     margin-bottom: 20px;
 }
 
+
+/* ========================================
+   👩‍🎓 학생 목록
+======================================== */
+
 .student {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
+
     padding: 12px;
     margin-bottom: 10px;
+
     border-radius: 10px;
     background: #f5f5f5;
 }
@@ -78,106 +87,48 @@ h2 {
     color: #999;
 }
 
+
+/* ========================================
+   ✅ 확인 버튼
+======================================== */
+
 .confirm-btn {
     border: none;
     border-radius: 8px;
+
     padding: 8px 12px;
+
     background: #4caf50;
     color: white;
+
     cursor: pointer;
+    font-size: 13px;
 }
 
 .confirm-btn:hover {
     background: #388e3c;
 }
 
-.confirm-btn.cancel {
-    background: #999;
+.confirm-btn:disabled {
+    background: #aaa;
+    cursor: not-allowed;
 }
 
-.confirm-btn.cancel:hover {
-    background: #777;
-}
-.submitted {
-    color: #d32f2f;
-    font-size: 13px;
-    font-weight: bold;
-    margin-left: 8px;
-}
-.draw-section {
-    margin-top: 30px;
-    padding-top: 25px;
-    border-top: 2px solid #eee;
-}
 
-.draw-section h2 {
-    margin-bottom: 10px;
-}
+/* ========================================
+   🎟️ 로또 제출 정보
+======================================== */
 
-#drawInfo {
-    color: #666;
-    margin-bottom: 15px;
-}
-
-#drawBtn {
-    width: 100%;
-    padding: 13px;
-    border: none;
-    border-radius: 10px;
-    background: #4caf50;
-    color: white;
-    font-size: 17px;
-    cursor: pointer;
-}
-
-#drawBtn:hover {
-    background: #388e3c;
-}
-
-#drawResult {
-    margin-top: 20px;
-    text-align: center;
-}
-
-.draw-number {
-    display: inline-flex;
-    justify-content: center;
-    align-items: center;
-
-    width: 45px;
-    height: 45px;
-
-    border-radius: 50%;
-
-    background: #4caf50;
-    color: white;
-
-    font-size: 18px;
-    font-weight: bold;
-
-    margin: 4px;
-}
-.reset-btn {
-    width: 100%;
-    padding: 13px;
-    margin-top: 8px;
-    border: none;
-    border-radius: 10px;
-    background: #4caf50;
-    color: white;
-    font-size: 17px;
-    cursor: pointer;
-}
-
-.reset-btn:hover {
-    background: #388e3c;
-}
 .tickets {
     width: 100%;
+    flex-basis: 100%;
+
     margin-top: 10px;
     padding: 10px;
+
     background: #f1f8f1;
     border-radius: 10px;
+
     text-align: left;
 }
 
@@ -189,20 +140,31 @@ h2 {
 
 .ticket {
     padding: 4px 0;
+
     font-size: 14px;
     color: #444;
+}
+
+.ticket-status {
+    margin-top: 5px;
+
+    font-size: 13px;
+    color: #666;
 }
 
 .no-ticket {
     color: #888;
     background: #f5f5f5;
 }
+
+
 /* ========================================
    🔢 번호 관리
 ======================================== */
 
 #numberInput {
     width: 100%;
+
     padding: 12px 14px;
     margin-top: 10px;
     margin-bottom: 10px;
@@ -214,16 +176,18 @@ h2 {
     outline: none;
 
     background: #fff;
-    box-sizing: border-box;
 }
 
 #numberInput:focus {
     border-color: #8bcf8b;
-    box-shadow: 0 0 0 2px rgba(139, 207, 139, 0.15);
+
+    box-shadow:
+        0 0 0 2px rgba(139, 207, 139, 0.15);
 }
 
 #saveNumbersBtn {
     width: 100%;
+
     padding: 12px;
 
     border: none;
@@ -252,4 +216,133 @@ h2 {
     color: #666;
 
     line-height: 1.5;
+}
+
+
+/* ========================================
+   🎲 추첨
+======================================== */
+
+.draw-card {
+    margin-top: 20px;
+}
+
+#drawInfo {
+    color: #666;
+    margin-bottom: 15px;
+}
+
+#drawBtn {
+    width: 100%;
+
+    padding: 13px;
+
+    border: none;
+    border-radius: 10px;
+
+    background: #4caf50;
+    color: white;
+
+    font-size: 17px;
+
+    cursor: pointer;
+}
+
+#drawBtn:hover {
+    background: #388e3c;
+}
+
+#drawResult {
+    margin-top: 20px;
+    text-align: center;
+}
+
+.draw-number {
+    display: inline-flex;
+
+    justify-content: center;
+    align-items: center;
+
+    width: 45px;
+    height: 45px;
+
+    border-radius: 50%;
+
+    background: #4caf50;
+    color: white;
+
+    font-size: 18px;
+    font-weight: bold;
+
+    margin: 4px;
+}
+
+
+/* ========================================
+   ⚙️ 데이터 초기화
+======================================== */
+
+.reset-card {
+    margin-top: 20px;
+}
+
+.reset-btn {
+    width: 100%;
+
+    padding: 13px;
+    margin-top: 8px;
+
+    border: none;
+    border-radius: 10px;
+
+    background: #4caf50;
+    color: white;
+
+    font-size: 17px;
+
+    cursor: pointer;
+}
+
+.reset-btn:hover {
+    background: #388e3c;
+}
+
+.reset-btn.danger {
+    background: #d32f2f;
+}
+
+.reset-btn.danger:hover {
+    background: #b71c1c;
+}
+
+
+/* ========================================
+   📱 모바일
+======================================== */
+
+@media (max-width: 480px) {
+
+    body {
+        padding: 10px;
+    }
+
+    .container {
+        width: 100%;
+    }
+
+    .card {
+        padding: 20px;
+    }
+
+    .student {
+        padding: 10px;
+    }
+
+    .student-id {
+        font-size: 15px;
+    }
+
+    .confirm-btn {
+        padding: 7px 10px;
+    }
 }
