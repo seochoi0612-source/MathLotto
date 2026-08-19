@@ -596,13 +596,15 @@ if (submitBtn) {
             await checkSubmitStatus();
 
             await showMyResults();
+
+            await showAllResults();
         }
     );
 }
 
 
 // ========================================
-// 🏆 결과
+// 🏆 내 결과
 // ========================================
 
 async function showMyResults() {
@@ -770,6 +772,719 @@ async function showMyResults() {
 
 
 // ========================================
+// 🏆 전체 학생 결과
+// ========================================
+
+async function showAllResults() {
+
+    // 결과를 넣을 공간 찾기
+    let allResults =
+        document.getElementById(
+            "allResults"
+        );
+
+
+    // 없으면 자동으로 생성
+    if (!allResults) {
+
+        allResults =
+            document.createElement("div");
+
+        allResults.id =
+            "allResults";
+
+        allResults.style.marginTop =
+            "30px";
+
+        allResults.style.paddingTop =
+            "25px";
+
+        allResults.style.borderTop =
+            "2px solid #eee";
+
+
+        const myResults =
+            document.getElementById(
+                "myResults"
+            );
+
+
+        if (myResults) {
+
+            myResults.parentNode.appendChild(
+                allResults
+            );
+
+        } else if (board) {
+
+            board.parentNode.appendChild(
+                allResults
+            );
+
+        } else {
+
+            document.body.appendChild(
+                allResults
+            );
+        }
+    }
+
+
+    allResults.innerHTML = "";
+
+
+    // ====================================
+    // 추첨 결과 가져오기
+    // ====================================
+
+    const {
+        data: drawData,
+        error: drawError
+    } =
+        await db
+            .from("draw_results")
+            .select("*")
+            .order("id", {
+                ascending: false
+            })
+            .limit(1)
+            .maybeSingle();
+
+
+    if (drawError) {
+
+        console.error(
+            "전체 결과 추첨 조회 오류:",
+            drawError
+        );
+
+        allResults.innerHTML =
+            "<p>전체 결과를 불러오지 못했습니다.</p>";
+
+        return;
+    }
+
+
+    if (!drawData) {
+
+        allResults.innerHTML =
+            "<h2>🏆 전체 학생 결과</h2>" +
+            "<p>아직 추첨 결과가 없습니다.</p>";
+
+        return;
+    }
+
+
+    // ====================================
+    // 학생 전체 가져오기
+    // ====================================
+
+    const {
+        data: students,
+        error: studentError
+    } =
+        await db
+            .from("students")
+            .select("student_id")
+            .order("student_id", {
+                ascending: true
+            });
+
+
+    if (studentError) {
+
+        console.error(
+            "전체 학생 조회 오류:",
+            studentError
+        );
+
+        allResults.innerHTML =
+            "<p>학생 정보를 불러오지 못했습니다.</p>";
+
+        return;
+    }
+
+
+    // ====================================
+    // 로또 전체 가져오기
+    // ====================================
+
+    const {
+        data: allTickets,
+        error: ticketError
+    } =
+        await db
+            .from("tickets")
+            .select(
+                "id, student_id, numbers"
+            )
+            .order("id", {
+                ascending: true
+            });
+
+
+    if (ticketError) {
+
+        console.error(
+            "전체 로또 조회 오류:",
+            ticketError
+        );
+
+        allResults.innerHTML =
+            "<p>전체 로또 결과를 불러오지 못했습니다.</p>";
+
+        return;
+    }
+
+
+    const winningNumbers =
+        Array.isArray(drawData.numbers)
+            ? drawData.numbers
+            : [];
+
+
+    // ====================================
+    // 학생별 결과 계산
+    // ====================================
+
+    const resultList =
+        students.map(student => {
+
+            const studentId =
+                String(
+                    student.student_id
+                ).trim();
+
+
+            const tickets =
+                (allTickets || []).filter(
+                    ticket =>
+                        String(
+                            ticket.student_id
+                        ).trim() === studentId
+                );
+
+
+            const details =
+                tickets.map(
+                    (ticket, index) => {
+
+                        const numbers =
+                            Array.isArray(
+                                ticket.numbers
+                            )
+                                ? ticket.numbers
+                                : [];
+
+
+                        const matchCount =
+                            numbers.filter(
+                                number =>
+                                    winningNumbers.includes(
+                                        number
+                                    )
+                            ).length;
+
+
+                        return {
+                            ticketNumber:
+                                index + 1,
+
+                            matchCount:
+                                matchCount,
+
+                            numbers:
+                                numbers
+                        };
+                    }
+                );
+
+
+            const best =
+                details.length > 0
+                    ? Math.max(
+                        ...details.map(
+                            item =>
+                                item.matchCount
+                        )
+                    )
+                    : null;
+
+
+            return {
+                studentId:
+                    studentId,
+
+                details:
+                    details,
+
+                best:
+                    best
+            };
+        });
+
+
+    // ====================================
+    // 제목
+    // ====================================
+
+    const title =
+        document.createElement("h2");
+
+    title.innerText =
+        "🏆 전체 학생 결과";
+
+    allResults.appendChild(
+        title
+    );
+
+
+    const subtitle =
+        document.createElement("p");
+
+    subtitle.innerText =
+        `${drawData.draw_date} · 최고 적중 개수`;
+
+    subtitle.style.color =
+        "#666";
+
+    subtitle.style.marginBottom =
+        "15px";
+
+    allResults.appendChild(
+        subtitle
+    );
+
+
+    // ====================================
+    // 🔘 정렬 버튼
+    // ====================================
+
+    const sortBox =
+        document.createElement("div");
+
+    sortBox.style.display =
+        "flex";
+
+    sortBox.style.gap =
+        "8px";
+
+    sortBox.style.marginBottom =
+        "15px";
+
+
+    const studentSortBtn =
+        document.createElement("button");
+
+    studentSortBtn.innerText =
+        "학번순";
+
+    const rankSortBtn =
+        document.createElement("button");
+
+    rankSortBtn.innerText =
+        "등수순";
+
+
+    [studentSortBtn, rankSortBtn]
+        .forEach(button => {
+
+            button.style.flex =
+                "1";
+
+            button.style.padding =
+                "10px";
+
+            button.style.border =
+                "none";
+
+            button.style.borderRadius =
+                "8px";
+
+            button.style.cursor =
+                "pointer";
+
+            button.style.fontSize =
+                "14px";
+
+            button.style.fontWeight =
+                "bold";
+
+            button.style.background =
+                "#e9f7e9";
+
+            button.style.color =
+                "#3d7c3d";
+        });
+
+
+    sortBox.appendChild(
+        studentSortBtn
+    );
+
+    sortBox.appendChild(
+        rankSortBtn
+    );
+
+    allResults.appendChild(
+        sortBox
+    );
+
+
+    // ====================================
+    // 📋 결과 표시 공간
+    // ====================================
+
+    const listBox =
+        document.createElement("div");
+
+    allResults.appendChild(
+        listBox
+    );
+
+
+    // ====================================
+    // 결과 그리기 함수
+    // ====================================
+
+    function renderResults(mode) {
+
+        listBox.innerHTML = "";
+
+
+        let sorted =
+            [...resultList];
+
+
+        // --------------------------------
+        // 학번순
+        // --------------------------------
+
+        if (mode === "student") {
+
+            sorted.sort(
+                (a, b) =>
+                    a.studentId.localeCompare(
+                        b.studentId
+                    )
+            );
+        }
+
+
+        // --------------------------------
+        // 등수순
+        // --------------------------------
+
+        if (mode === "rank") {
+
+            sorted.sort(
+                (a, b) => {
+
+                    // 제출한 학생 먼저
+                    if (
+                        a.best === null &&
+                        b.best !== null
+                    ) {
+                        return 1;
+                    }
+
+                    if (
+                        a.best !== null &&
+                        b.best === null
+                    ) {
+                        return -1;
+                    }
+
+                    // 최고 개수 높은 순
+                    if (
+                        a.best !== b.best
+                    ) {
+
+                        return (
+                            (b.best ?? -1) -
+                            (a.best ?? -1)
+                        );
+                    }
+
+                    // 같은 점수면 학번순
+                    return a.studentId.localeCompare(
+                        b.studentId
+                    );
+                }
+            );
+        }
+
+
+        // =================================
+        // 순위 계산
+        // =================================
+
+        let currentRank = 0;
+
+        let previousBest = null;
+
+        let countedStudents = 0;
+
+
+        sorted.forEach(
+            student => {
+
+                let rankText = "";
+
+
+                if (
+                    mode === "rank" &&
+                    student.best !== null
+                ) {
+
+                    countedStudents++;
+
+
+                    if (
+                        previousBest !==
+                        student.best
+                    ) {
+
+                        currentRank =
+                            countedStudents;
+
+                        previousBest =
+                            student.best;
+                    }
+
+
+                    if (
+                        currentRank === 1
+                    ) {
+
+                        rankText =
+                            "🥇";
+
+                    } else if (
+                        currentRank === 2
+                    ) {
+
+                        rankText =
+                            "🥈";
+
+                    } else if (
+                        currentRank === 3
+                    ) {
+
+                        rankText =
+                            "🥉";
+
+                    } else {
+
+                        rankText =
+                            `${currentRank}위`;
+                    }
+                }
+
+
+                // =================================
+                // 접기/펼치기
+                // =================================
+
+                const details =
+                    document.createElement(
+                        "details"
+                    );
+
+
+                details.style.marginBottom =
+                    "8px";
+
+
+                const summary =
+                    document.createElement(
+                        "summary"
+                    );
+
+
+                summary.style.cursor =
+                    "pointer";
+
+                summary.style.padding =
+                    "12px";
+
+                summary.style.borderRadius =
+                    "10px";
+
+                summary.style.background =
+                    "#f5f5f5";
+
+                summary.style.fontWeight =
+                    "bold";
+
+                summary.style.listStylePosition =
+                    "inside";
+
+
+                if (
+                    mode === "rank" &&
+                    student.best !== null
+                ) {
+
+                    summary.innerText =
+                        `${rankText}  ${student.studentId}  ·  🏆 ${student.best}개`;
+
+                } else if (
+                    student.best !== null
+                ) {
+
+                    summary.innerText =
+                        `${student.studentId}  ·  🏆 ${student.best}개`;
+
+                } else {
+
+                    summary.innerText =
+                        `${student.studentId}  ·  제출 없음`;
+                }
+
+
+                details.appendChild(
+                    summary
+                );
+
+
+                // =================================
+                // 상세 내용
+                // =================================
+
+                const detailBox =
+                    document.createElement(
+                        "div"
+                    );
+
+
+                detailBox.style.padding =
+                    "10px 15px";
+
+                detailBox.style.background =
+                    "#fafafa";
+
+                detailBox.style.borderRadius =
+                    "0 0 10px 10px";
+
+
+                if (
+                    student.details.length === 0
+                ) {
+
+                    detailBox.innerText =
+                        "아직 제출한 로또가 없습니다.";
+
+                } else {
+
+                    student.details.forEach(
+                        detail => {
+
+                            const row =
+                                document.createElement(
+                                    "div"
+                                );
+
+
+                            row.style.padding =
+                                "7px 0";
+
+                            row.style.borderBottom =
+                                "1px solid #eee";
+
+
+                            row.innerText =
+                                `${detail.ticketNumber}장 · ${detail.matchCount}개 일치`;
+
+
+                            detailBox.appendChild(
+                                row
+                            );
+                        }
+                    );
+                }
+
+
+                details.appendChild(
+                    detailBox
+                );
+
+                listBox.appendChild(
+                    details
+                );
+            }
+        );
+    }
+
+
+    // ====================================
+    // 버튼 기능
+    // ====================================
+
+    studentSortBtn.addEventListener(
+        "click",
+        function () {
+
+            renderResults(
+                "student"
+            );
+
+            studentSortBtn.style.background =
+                "#4caf50";
+
+            studentSortBtn.style.color =
+                "white";
+
+            rankSortBtn.style.background =
+                "#e9f7e9";
+
+            rankSortBtn.style.color =
+                "#3d7c3d";
+        }
+    );
+
+
+    rankSortBtn.addEventListener(
+        "click",
+        function () {
+
+            renderResults(
+                "rank"
+            );
+
+            rankSortBtn.style.background =
+                "#4caf50";
+
+            rankSortBtn.style.color =
+                "white";
+
+            studentSortBtn.style.background =
+                "#e9f7e9";
+
+            studentSortBtn.style.color =
+                "#3d7c3d";
+        }
+    );
+
+
+    // ====================================
+    // 기본값: 학번순
+    // ====================================
+
+    studentSortBtn.style.background =
+        "#4caf50";
+
+    studentSortBtn.style.color =
+        "white";
+
+
+    renderResults(
+        "student"
+    );
+}
+
+
+// ========================================
 // 🚀 시작
 // ========================================
 
@@ -780,6 +1495,8 @@ async function initialize() {
     await checkSubmitStatus();
 
     await showMyResults();
+
+    await showAllResults();
 }
 
 
