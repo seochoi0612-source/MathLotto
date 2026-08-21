@@ -199,6 +199,47 @@ async function getStudentInfo() {
 
 
 // ========================================
+// 🎟️ 로또 지급 수량 가져오기
+// ========================================
+
+async function getLottoCredits() {
+
+    const studentId =
+        getStudentId();
+
+    if (!studentId) {
+        return 0;
+    }
+
+    const {
+        data,
+        error
+    } =
+        await db
+            .from("lotto_credits")
+            .select("student_id, credits")
+            .eq("student_id", studentId)
+            .maybeSingle();
+
+    if (error) {
+
+        console.error(
+            "로또 지급 수량 조회 오류:",
+            error
+        );
+
+        return 0;
+    }
+
+    if (!data) {
+        return 0;
+    }
+
+    return Number(data.credits) || 0;
+}
+
+
+// ========================================
 // 🎟️ 내 로또 불러오기
 // ========================================
 
@@ -234,6 +275,35 @@ async function getTickets() {
     }
 
     return data || [];
+}
+
+
+// ========================================
+// 🎟️ 로또 제출 가능 장수 계산
+// ========================================
+
+async function getLottoStatus() {
+
+    const credits =
+        await getLottoCredits();
+
+    const tickets =
+        await getTickets();
+
+    const submittedCount =
+        tickets.length;
+
+    const remaining =
+        Math.max(
+            credits - submittedCount,
+            0
+        );
+
+    return {
+        credits,
+        submittedCount,
+        remaining
+    };
 }
 
 
@@ -317,55 +387,73 @@ async function checkSubmitStatus() {
         submitBtn.innerText =
             "🔒 관리자 확인 대기 중";
 
-        hideStudentMessage();
+        showStudentMessage(
+            "관리자의 학생 확인이 완료되면 로또를 제출할 수 있습니다."
+        );
 
         return;
     }
 
 
     // ====================================
-    // 🎟️ 기존 로또 확인
+    // 🎟️ 로또 지급/제출 상태
     // ====================================
 
-    const tickets =
-        await getTickets();
-
-    if (tickets.length === 0) {
-
-        submitBtn.disabled = false;
-
-        submitBtn.innerText =
-            "제출하기";
-
-        hideStudentMessage();
-
-        return;
-    }
+    const {
+        credits,
+        submittedCount,
+        remaining
+    } =
+        await getLottoStatus();
 
 
-    const latestTicket =
-        tickets[tickets.length - 1];
-
-
-    // 최근 로또까지 확인됨
-    if (
-        latestTicket.confirmed === true
-    ) {
-
-        submitBtn.disabled = false;
-
-        submitBtn.innerText =
-            "제출하기";
-
-        hideStudentMessage();
-
-    } else {
+    // 지급받은 로또가 없는 경우
+    if (credits <= 0) {
 
         submitBtn.disabled = true;
 
         submitBtn.innerText =
-            "🔒 관리자 확인 대기 중";
+            "🎟️ 로또 지급 대기 중";
+
+        showStudentMessage(
+            "관리자에게 로또를 지급받은 후 제출할 수 있습니다."
+        );
+
+        return;
     }
+
+
+    // ====================================
+    // 🎟️ 남은 로또가 있는 경우
+    // ====================================
+
+    if (remaining > 0) {
+
+        submitBtn.disabled = false;
+
+        submitBtn.innerText =
+            "제출하기";
+
+        showStudentMessage(
+            `🎟️ 지급 ${credits}장 · 제출 ${submittedCount}장 · 남은 ${remaining}장`
+        );
+
+        return;
+    }
+
+
+    // ====================================
+    // 🎟️ 지급받은 만큼 모두 제출한 경우
+    // ====================================
+
+    submitBtn.disabled = true;
+
+    submitBtn.innerText =
+        "🎟️ 제출 완료";
+
+    showStudentMessage(
+        `🎟️ 지급 ${credits}장 · 제출 ${submittedCount}장\n모든 로또를 제출했습니다.`
+    );
 }
 
 
@@ -496,7 +584,47 @@ if (submitBtn) {
             }
 
 
+            // ====================================
+            // 🎟️ 지급된 로또 장수 확인
+            // ====================================
+
+            const {
+                credits,
+                submittedCount,
+                remaining
+            } =
+                await getLottoStatus();
+
+
+            if (credits <= 0) {
+
+                alert(
+                    "아직 지급받은 로또가 없습니다.\n\n" +
+                    "관리자에게 로또 지급을 요청해주세요."
+                );
+
+                await checkSubmitStatus();
+
+                return;
+            }
+
+
+            if (remaining <= 0) {
+
+                alert(
+                    "지급받은 로또를 모두 제출했습니다."
+                );
+
+                await checkSubmitStatus();
+
+                return;
+            }
+
+
+            // ====================================
             // 번호 6개 확인
+            // ====================================
+
             if (
                 selected.length !== 6
             ) {
@@ -506,33 +634,6 @@ if (submitBtn) {
                 );
 
                 return;
-            }
-
-
-            // 이전 로또 확인
-            const tickets =
-                await getTickets();
-
-
-            if (tickets.length > 0) {
-
-                const latestTicket =
-                    tickets[
-                        tickets.length - 1
-                    ];
-
-
-                if (
-                    latestTicket.confirmed !== true
-                ) {
-
-                    alert(
-                        "아직 이전 로또의 확인이 완료되지 않았습니다.\n\n" +
-                        "관리자에게 확인을 요청해주세요."
-                    );
-
-                    return;
-                }
             }
 
 
@@ -574,7 +675,7 @@ if (submitBtn) {
             alert(
                 `${data[0].numbers.join(", ")}\n\n` +
                 "로또 제출 완료!\n" +
-                "관리자 확인 후 다음 로또를 제출할 수 있습니다."
+                "관리자에게 제출한 로또 확인을 요청해주세요."
             );
 
 
@@ -593,6 +694,8 @@ if (submitBtn) {
 
             updateCount();
 
+
+            // 제출 후 상태 다시 확인
             await checkSubmitStatus();
 
             await showMyResults();
